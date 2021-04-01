@@ -1,0 +1,182 @@
+
+#global:
+#  imagePullSecrets:
+#    - name: quay-registry-secreti
+
+kube-prometheus-stack:
+    ## Provide a name in place of kube-prometheus-stack for `app:` labels
+    ##
+    nameOverride: ""
+
+    ## Override the deployment namespace
+    ##
+    namespaceOverride: ""
+
+    ## Provide a k8s version to auto dashboard import script example: kubeTargetVersionOverride: 1.16.6
+    ##
+    kubeTargetVersionOverride: ""
+
+    ## Provide a name to substitute for the full names of resources
+    ##
+    fullnameOverride: ""
+
+    ## Component scraping the kube controller manager
+    kubeControllerManager:
+      enabled: false
+
+    ## Component scraping etcd
+    kubeEtcd:
+      enabled: false
+
+    ## Component scraping kube proxy
+    kubeProxy:
+      enabled: false
+
+    ## Component scraping kube scheduler
+    kubeScheduler:
+      enabled: false
+
+    ## Configuration for alertmanager
+    ## ref: https://prometheus.io/docs/alerting/alertmanager/
+    ##
+    alertmanager:
+      alertmanagerSpec:
+        image:
+          repository: quay.io/prometheus/alertmanager
+          tag: latest
+          sha: ""  
+    
+    ingress:
+    ## If true, Grafana Ingress will be created
+    ##
+      enabled: true
+
+    ## Annotations for Grafana Ingress
+    ##
+      annotations: 
+      kubernetes.io/ingress.class: nginx
+      # kubernetes.io/tls-acme: "true"
+
+    ## Labels to be added to the Ingress
+    ##
+      labels: {}
+
+    ## Hostnames.
+    ## Must be provided if Ingress is enable.
+    ##
+    # hosts:
+    #   - grafana.domain.com
+      hosts: 
+      - dev-platform
+
+    ## Path for grafana ingress
+      path: /grafana/  
+    
+    ## Manages Prometheus and Alertmanager components
+    ##
+    prometheusOperator:
+      enabled: true
+      admissionWebhooks:
+        failurePolicy: Fail
+        enabled: true
+        patch:
+          enabled: true
+          image:
+            repository: jettech/kube-webhook-certgen
+            tag: v1.5.1
+            sha: ""
+            pullPolicy: IfNotPresent
+          resources: {}
+      ## Prometheus-operator image
+      ##
+      image:
+        repository: quay.io/prometheus-operator/prometheus-operator
+        tag: v0.46.0
+        sha: ""
+        pullPolicy: IfNotPresent
+
+      prometheusConfigReloaderImage:
+        repository: quay.io/prometheus-operator/prometheus-config-reloader
+        tag: v0.46.0
+        sha: ""
+
+    prometheus:
+      enabled: true
+      ## Configuration for Prometheus service
+      ##
+      service:
+        type: LoadBalancer
+      prometheusSpec:
+        image:
+          repository: quay.io/prometheus/prometheus
+          tag: v2.24.0
+          sha: ""
+        ## External URL at which Prometheus will be reachable.
+        ##
+        externalUrl: "http://kind-dev/prometheus"
+        ## Prefix used to register routes, overriding externalUrl route.
+        ## Useful for proxies that rewrite URLs.
+        ##
+        routePrefix: /prometheus
+    grafana:
+      adminPassword: "password"
+      grafana.ini:
+        server:
+          domain: cluster-dev.local
+          root_url: "%(protocol)s://%(domain)s:%(http_port)s/grafana"
+          serve_from_sub_path: true
+      image:
+        repository: grafana/grafana
+
+      downloadDashboardsImage:
+        repository: curlimages/curl
+
+      initChownData:
+        image:
+          repository: busybox
+
+      sidecar:
+        image:
+          repository: kiwigrid/k8s-sidecar
+      ingress:
+        ## If true, Grafana Ingress will be created
+        ##
+        enabled: true
+
+        ## Annotations for Grafana Ingress
+        ##
+        #annotations: {
+        #  kubernetes.io/ingress.class: nginx,:qa:pod
+        #  kubernetes.io/tls-acme: "false"
+        #}
+
+        ## Labels to be added to the Ingress
+        ##
+        labels: {}
+
+        ## Hostnames.
+        ## Must be provided if Ingress is enable.
+        ##
+        # hosts:
+        #   - grafana.domain.com
+        hosts: 
+          - grafana.cluster-dev.local
+
+        ## Path for grafana ingress
+        path: /grafana
+
+        ## TLS configuration for grafana Ingress
+        ## Secret must be manually created in the namespace
+        ##
+        tls: []
+        # - secretName: grafana-general-tls
+        #   hosts:
+        #   - grafana.example.com
+
+    kube-state-metrics:
+      image:
+        repository: quay.io/coreos/kube-state-metrics
+
+    prometheus-node-exporter:
+      image:
+        repository: quay.io/prometheus/node-exporter
